@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero card">
+  <div>
+    <p class="eyebrow">Collezione</p>
+    <h1>Una libreria minimale, veloce, tua.</h1>
+    <p class="intro">Cerca, filtra, aggiungi e importa i libri del tuo indice personale da browser, su desktop e smartphone.</p>
+  </div>
+  <div class="stats-grid">
+    <article class="stat"><span>Totali</span><strong>{{ stats.total }}</strong></article>
+    <article class="stat"><span>Letti</span><strong>{{ stats.read }}</strong></article>
+    <article class="stat"><span>In lettura</span><strong>{{ stats.reading }}</strong></article>
+    <article class="stat"><span>Da leggere</span><strong>{{ stats.to_read }}</strong></article>
+  </div>
+</section>
+<section class="toolbar card">
+  <form method="get" class="filters">
+    <input type="text" name="q" value="{{ q }}" placeholder="Cerca titolo, autore, note">
+    <select name="status">
+      <option value="">Tutti gli stati</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn primary" type="submit">Filtra</button>
+    <a class="btn ghost" href="/">Reset</a>
+  </form>
+  <div class="toolbar-actions">
+    <details class="manage-menu">
+      <summary class="btn ghost">Manage</summary>
+      <div class="manage-panel">
+        <a class="manage-item" href="/import">
+          <strong>Import Excel</strong>
+          <span>Importa i dati iniziali dal file Excel nel catalogo.</span>
+        </a>
+        <a class="manage-item" href="/export/csv?{{ export_query }}">
+          <strong>Export CSV</strong>
+          <span>Esporta in CSV solo i risultati attualmente filtrati.</span>
+        </a>
+        <a class="manage-item" href="/export/xlsx?{{ export_query }}">
+          <strong>Export Excel</strong>
+          <span>Esporta in Excel solo i risultati attualmente filtrati.</span>
+        </a>
+      </div>
+    </details>
+    <a class="btn primary" href="/books/new">Aggiungi libro</a>
+  </div>
+</section>
+<section class="list-section">
+  {% if books %}
+  <div class="book-grid">
+    {% for b in books %}
+    <article class="book-card card">
+      <div class="book-main">
+        <div>
+          <p class="meta">{{ b.author or 'Autore non indicato' }}</p>
+          <h2>{{ b.title }}</h2>
+        </div>
+        {% if b.status %}<span class="chip">{{ b.status }}</span>{% endif %}
+      </div>
+      <div class="book-details">
+        <span><strong>Uscita:</strong> {{ b.release_date or '-' }}</span>
+        <span><strong>Anno letto:</strong> {{ b.year_read or '-' }}</span>
+        <span><strong>Location:</strong> {{ b.location or '-' }}</span>
+        <span><strong>ISBN:</strong> {{ b.isbn or '-' }}</span>
+        <span><strong>Pagine:</strong> {{ b.current_page or '-' }}/{{ b.total_pages or '-' }}</span>
+        <span><strong>Worth reading:</strong> {{ b.worth_reading or '-' }}</span>
+        <span><strong>Rating:</strong> {{ b.rating or '-' }}</span>
+      </div>
+      {% if b.description %}<p class="desc">{{ b.description }}</p>{% endif %}
+      {% if b.notes %}<p class="notes">{{ b.notes }}</p>{% endif %}
+      <div class="card-actions">
+        <a class="btn ghost" href="/books/{{ b.id }}/edit">Modifica</a>
+        <form method="post" action="/books/{{ b.id }}/delete" onsubmit="return confirm('Eliminare questo libro?');">
+          <button class="btn danger" type="submit">Elimina</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section class="empty-state card">
+    <h2>Nessun libro presente</h2>
+    <p>Puoi iniziare aggiungendo un libro manualmente oppure importando il tuo file Excel.</p>
+    <div class="card-actions compact">
+      <a class="btn primary" href="/books/new">Aggiungi libro</a>
+      <details class="manage-menu">
+        <summary class="btn ghost">Manage</summary>
+        <div class="manage-panel">
+          <a class="manage-item" href="/import">
+            <strong>Import Excel</strong>
+            <span>Importa i dati iniziali dal file Excel nel catalogo.</span>
+          </a>
+          <a class="manage-item" href="/export/csv?{{ export_query }}">
+            <strong>Export CSV</strong>
+            <span>Esporta in CSV solo i risultati attualmente filtrati.</span>
+          </a>
+          <a class="manage-item" href="/export/xlsx?{{ export_query }}">
+            <strong>Export Excel</strong>
+            <span>Esporta in Excel solo i risultati attualmente filtrati.</span>
+          </a>
+        </div>
+      </details>
+    </div>
+  </section>
+  {% endif %}
+</section>
+{% endblock %}

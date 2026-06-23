@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="stats-strip">
+  <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
+  <div class="stat-inline"><span>Read</span><strong>{{ stats.read }}</strong></div>
+  <div class="stat-inline"><span>Not read</span><strong>{{ stats.not_read }}</strong></div>
+  <div class="stat-inline"><span>Reading</span><strong>{{ stats.reading }}</strong></div>
+</section>
+
+<section class="toolbar-row">
+  <a class="btn btn-primary" href="/books/new">Add book</a>
+  <div class="manage-menu-wrap">
+  <details class="manage-menu">
+    <summary class="btn btn-secondary">Manage</summary>
+    <div class="manage-panel">
+      <a class="manage-item" href="/import">Import Excel</a>
+      <a class="manage-item" href="/export/csv?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by={{ sort_by|urlencode }}&sort_dir={{ sort_dir|urlencode }}">Export CSV</a>
+      <a class="manage-item" href="/export/xlsx?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by={{ sort_by|urlencode }}&sort_dir={{ sort_dir|urlencode }}">Export Excel</a>
+    </div>
+  </details>
+</div>
+  <a class="btn btn-secondary" href="/statistics">Statistics</a>
+</section>
+
+<section class="panel">
+  <form method="get" class="filters auto-submit" id="filters-form">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by title or author">
+    <select name="reading_bucket">
+      <option value="">Reading State</option>
+      <option value="read" {% if reading_bucket=='read' %}selected{% endif %}>Read</option>
+      <option value="not_read" {% if reading_bucket=='not_read' %}selected{% endif %}>Not read</option>
+      <option value="reading" {% if reading_bucket=='reading' %}selected{% endif %}>Reading</option>
+      <option value="other" {% if reading_bucket=='other' %}selected{% endif %}>Other</option>
+    </select>
+    <select name="year_read">
+      <option value="">Year Read</option>
+      {% for y in years %}<option value="{{ y }}" {% if year_read==y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+    <input type="hidden" name="sort_dir" value="{{ sort_dir }}">
+    <a class="btn btn-ghost" href="/">Reset filters</a>
+  </form>
+</section>
+
+<section class="table-shell panel">
+  <div class="table-wrap">
+    <table class="books-table">
+      <thead>
+        <tr>
+          <th><a href="/?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by=title&sort_dir={{ sort_toggle(sort_by, sort_dir, 'title') }}">Title{% if sort_by == 'title' %} {{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}</a></th>
+          <th><a href="/?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by=author&sort_dir={{ sort_toggle(sort_by, sort_dir, 'author') }}">Author{% if sort_by == 'author' %} {{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}</a></th>
+          <th><a href="/?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by=reading_state&sort_dir={{ sort_toggle(sort_by, sort_dir, 'reading_state') }}">Reading State{% if sort_by == 'reading_state' %} {{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}</a></th>
+          <th><a href="/?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by=year_read&sort_dir={{ sort_toggle(sort_by, sort_dir, 'year_read') }}">Year Read{% if sort_by == 'year_read' %} {{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}</a></th>
+          <th><a href="/?q={{ q|urlencode }}&reading_bucket={{ reading_bucket|urlencode }}&year_read={{ year_read|urlencode }}&status={{ status|urlencode }}&sort_by=location&sort_dir={{ sort_toggle(sort_by, sort_dir, 'location') }}">Location{% if sort_by == 'location' %} {{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}</a></th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for book in books %}
+        <tr>
+          <td data-label="Title"><div class="title-cell">{{ book.title }}</div></td>
+          <td data-label="Author">{{ book.author or '—' }}</td>
+          <td data-label="Reading State"><span class="state-pill state-{{ book.reading_bucket or 'other' }}">{{ (book.reading_bucket or 'other').replace('_',' ')|title }}</span></td>
+          <td data-label="Year Read">{{ book.year_read or '—' }}</td>
+          <td data-label="Location">{{ book.location or '—' }}</td>
+          <td data-label="Actions" class="actions-cell">
+            <div class="actions-inline">
+              <a href="/books/{{ book.id }}/edit" class="row-icon" aria-label="Edit book" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              </a>
+              <form class="inline-form" method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Remove this book?');">
+                <button class="row-icon danger" type="submit" aria-label="Remove book" title="Remove">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-cell">No books found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  const f = document.getElementById('filters-form');
+  if (f) {
+    f.querySelectorAll('select').forEach(el => el.addEventListener('change', () => f.submit()));
+    const search = f.querySelector('input[type="search"]');
+    let timer;
+    if (search) {
+      search.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => f.submit(), 350);
+      });
+    }
+  }
+</script>
+{% endblock %}

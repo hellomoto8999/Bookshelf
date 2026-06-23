@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="stats-strip compact">
+  <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
+  <div class="stat-inline"><span>Read</span><strong>{{ stats.read }}</strong></div>
+  <div class="stat-inline"><span>Not read</span><strong>{{ stats.not_read }}</strong></div>
+  <div class="stat-inline"><span>Reading</span><strong>{{ stats.reading }}</strong></div>
+</section>
+<section class="toolbar-row">
+  <a class="btn btn-secondary" href="/">Back to library</a>
+  <a class="btn btn-secondary" href="/statistics">Statistics</a>
+</section>
+<section class="panel form-panel">
+  <h1>Import from Excel</h1>
+  <p class="subtle">Upload your cleaned .xlsx file. All fields remain optional except Title.</p>
+  {% if message %}<p class="flash">{{ message }}</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="import-form">
+    <input type="file" name="file" accept=".xlsx,.xls">
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="/">Back</a>
+      <button class="btn btn-primary" type="submit">Import</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

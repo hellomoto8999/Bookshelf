@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="stats-strip compact">
+  <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
+  <div class="stat-inline"><span>Read</span><strong>{{ stats.read }}</strong></div>
+  <div class="stat-inline"><span>Not read</span><strong>{{ stats.not_read }}</strong></div>
+  <div class="stat-inline"><span>Reading</span><strong>{{ stats.reading }}</strong></div>
+</section>
+<section class="toolbar-row">
+  <a class="btn btn-secondary" href="/">Back to library</a>
+  <a class="btn btn-primary" href="/books/new">Add book</a>
+  <a class="btn btn-secondary" href="/import">Import Excel</a>
+</section>
+<section class="panel chart-panel">
+  <div class="chart-head">
+    <h1>Books read per year</h1>
+    <p class="subtle">Histogram based on books with Reading State = Read and a filled Year Read.</p>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="yearChart"></canvas>
+  </div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ chart_labels|tojson }};
+const values = {{ chart_values|tojson }};
+new Chart(document.getElementById('yearChart'), {
+  type: 'bar',
+  data: { labels, datasets: [{ label: 'Books read', data: values, backgroundColor: '#01696f', borderRadius: 6, maxBarThickness: 42 }] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}
