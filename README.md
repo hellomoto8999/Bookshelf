@@ -1,39 +1,110 @@
-# Bookshelf App
+# Bookshelf
 
-App server-side per gestire un indice personale di libri, raggiungibile via browser su porta 8080.
+A self-hosted, browser-based personal book library manager. Runs on port 8080, built with FastAPI, Jinja2, SQLite, and Docker.
+
+![Library view](docs/screenshots/home.png)
+
+## Features
+
+- **Book list** with live search (title & author) and sorting
+- **Filters**: Reading State, Year Read, Location, Tag — compact filter bar with a collapsible panel
+- **Add / edit / delete** books with a clean two-column form
+- **Tags**: multiple, reusable tags per book (e.g. "who recommended it"), shown as small badges next to the title; filter by tag
+- **Import** from Excel (`.xlsx`) with duplicate detection (title + author)
+- **Export** the current filtered view as CSV or Excel
+- **Statistics** page: books read per year, reading state, books per location, top authors
+- **Auto cover & summary** (optional, via Google Books / Open Library + Groq): fetched automatically when you add a book, in the book's language
+- **Autofill** page to batch-fill missing summaries, **Coverfill** page to batch-fetch missing covers
+- **AI recall**: describe a vague memory of a book and find it in your library
+- **E-ink inspired UI**: grayscale, squared controls, serif typography, light / dark / follow-OS theme switcher
+- Responsive (desktop, tablet, mobile)
+
+## Screenshots
+
+| Library | Filters open |
+|---|---|
+| ![Library](docs/screenshots/home.png) | ![Filters open](docs/screenshots/home-filters.png) |
+
+| Book form | Statistics |
+|---|---|
+| ![Book form](docs/screenshots/form.png) | ![Statistics](docs/screenshots/stats.png) |
+
+| Dark mode | Mobile |
+|---|---|
+| ![Dark mode](docs/screenshots/dark.png) | ![Mobile](docs/screenshots/mobile.png) |
 
 ## Stack
-- FastAPI
-- Jinja2 templates
-- SQLite
-- Docker / Docker Compose
 
-## Funzioni
-- Elenco libri con ricerca
-- Filtri per stato di lettura, anno di lettura e stato raw
-- Aggiunta, modifica ed eliminazione
-- Import iniziale da Excel
-- Statistiche in alto (totale, letti, da leggere/non letti, in lettura)
+- **FastAPI** — backend and routing
+- **Jinja2** — server-side HTML templates
+- **SQLite** — local database (no external DB required)
+- **Docker / Docker Compose** — containerised deployment
+- **Open Library / Google Books / Groq** — covers, descriptions, AI translation (optional)
 
-## Campi
-Tutti opzionali tranne `title`.
+## Book Fields
 
-## Mapping stato lettura
-L'app salva sia:
-- `status_raw`: il valore originale importato da Excel
-- `reading_bucket`: valore normalizzato per i filtri (`read`, `not_read`, `reading`, `other`)
+All fields are optional except `Title`. A book can have **multiple tags**.
 
-## Avvio
+| Field | Notes |
+|---|---|
+| Title | Required |
+| Author | |
+| Reading Status | `Read`, `Not Read`, `Reading`, `KO` — drives the Reading State pill |
+| Worth Reading | |
+| Year Read | |
+| Location | Where the book is physically or digitally stored (e.g. `Ebook`, `MI`) |
+| Tags | Comma-separated, reusable; e.g. `Fabio Volo, Palombo` |
+| Language | `IT` / `EN` — drives summary fetching |
+| ISBN | |
+| Release Date | |
+| Current Page / Total Pages | |
+| Rating | |
+| Description | Summary (fetched or entered) |
+| Notes | |
+
+## Reading State Logic
+
+The app stores two separate fields:
+
+- `status_raw` — the original text value (e.g. `"Read"`, `"Not Read"`, `"Reading"`)
+- `reading_bucket` — the normalised value used for filtering and the coloured pill (`read`, `not_read`, `reading`, `ko`, `other`)
+
+`reading_bucket` is computed automatically from `status_raw` on every save.
+
+## Getting Started
+
 ```bash
 docker compose up --build
 ```
 
-Poi apri:
-- http://localhost:8080
-- oppure http://IP-DELLA-MACCHINA:8080 dalla LAN
+Then open:
+- `http://localhost:8080`
+- or `http://<your-machine-ip>:8080` from the LAN
 
-## Import da Excel
-Metti il file `Bookshelf.xlsx` nella cartella `imports/`, poi usa la pagina `Importa Excel` dall'interfaccia.
+## Import from Excel
 
-## Deduplica import
-Durante l'import viene saltato un libro se esiste già una entry con stessa coppia `title` + `author`.
+Put `Bookshelf.xlsx` in the `imports/` folder, then use **Import Excel** from the interface.
+
+Deduplication on import: a book is skipped if an entry with the same `title` + `author` already exists.
+
+## Export
+
+From the library page, **Export CSV** / **Export Excel** export the currently filtered list.
+
+## Environment Variables
+
+Set these in a `.env` file for AI/cover features:
+
+```
+GROQ_API_KEY=...
+GOOGLE_BOOKS_API_KEY=...
+```
+
+Both are optional; the app works without them (no auto-fetch, no AI recall).
+
+## Notes
+
+- Tagged books can carry multiple tags; the tag list is derived from existing tags and grows as you create new ones.
+- New books automatically fetch their cover and summary in the background.
+- The theme button cycles through **Light / Dark / Follow OS**.
+- Covers and UI are intentionally grayscale (e-ink aesthetic).
