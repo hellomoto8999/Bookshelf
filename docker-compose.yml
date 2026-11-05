@@ -4,6 +4,9 @@ services:
     container_name: bookshelf-app
     ports:
       - "8080:8080"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
     volumes:
       - ./data:/app/data
       - ./imports:/app/imports

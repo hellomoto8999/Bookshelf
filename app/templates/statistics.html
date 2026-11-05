@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block title %}Statistics · Bookshelf{% endblock %}
 {% block content %}
 <section class="stats-strip compact">
   <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
@@ -10,30 +11,101 @@
   <a class="btn btn-secondary" href="/">Back to library</a>
   <a class="btn btn-primary" href="/books/new">Add book</a>
   <a class="btn btn-secondary" href="/import">Import Excel</a>
+  <a class="btn btn-secondary" href="/export/csv">Export CSV</a>
 </section>
-<section class="panel chart-panel">
-  <div class="chart-head">
-    <h1>Books read per year</h1>
-    <p class="subtle">Histogram based on books with Reading State = Read and a filled Year Read.</p>
-  </div>
-  <div class="chart-wrap">
-    <canvas id="yearChart"></canvas>
-  </div>
-</section>
+
+<div class="stats-grid charts-grid">
+  <section class="panel chart-panel">
+    <div class="chart-head">
+      <h1>Books read per year</h1>
+      <p class="subtle">Books with Reading State = Read and a filled Year Read.</p>
+    </div>
+    <div class="chart-wrap"><canvas id="yearChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel">
+    <div class="chart-head">
+      <h1>Reading state</h1>
+      <p class="subtle">Books by reading state.</p>
+    </div>
+    <div class="chart-wrap"><canvas id="stateChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel">
+    <div class="chart-head">
+      <h1>Books per location</h1>
+      <p class="subtle">Where your books are.</p>
+    </div>
+    <div class="chart-wrap"><canvas id="locChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel">
+    <div class="chart-head">
+      <h1>Top authors</h1>
+      <p class="subtle">The most frequent authors in the collection.</p>
+    </div>
+    <ol class="author-list">
+      {% for a in top_authors %}
+      <li><span class="author-name">{{ a.name }}</span><span class="author-count">{{ a.count }}</span></li>
+      {% else %}
+      <li class="subtle">No authors.</li>
+      {% endfor %}
+    </ol>
+  </section>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const labels = {{ chart_labels|tojson }};
-const values = {{ chart_values|tojson }};
+const DARK = document.documentElement.getAttribute('data-theme') === 'dark';
+const INK = DARK ? '#e9e9e6' : '#111111';
+const BAR = DARK ? '#c9c9c6' : '#3a3a3a';
+const LOC = DARK ? '#a4a49f' : '#6f6f6f';
+const PALETTE = DARK
+  ? ['#e9e9e6', '#a4a49f', '#787873', '#4d4d49', '#2e2e2b']
+  : ['#111111', '#707070', '#a3a3a3', '#c9c9c9', '#e6e6e6'];
+Chart.defaults.color = DARK ? '#a4a49f' : '#8a8a8a';
+Chart.defaults.borderColor = DARK ? 'rgba(255,255,255,.14)' : 'rgba(128,128,128,.22)';
+Chart.defaults.font.size = 13;
+Chart.defaults.font.family = "Georgia, 'Iowan Old Style', serif";
+const yearLabels = {{ chart_labels|tojson }};
+const yearValues = {{ chart_values|tojson }};
 new Chart(document.getElementById('yearChart'), {
   type: 'bar',
-  data: { labels, datasets: [{ label: 'Books read', data: values, backgroundColor: '#01696f', borderRadius: 6, maxBarThickness: 42 }] },
+  data: { labels: yearLabels, datasets: [{ label: 'Books read', data: yearValues, backgroundColor: BAR, borderRadius: 6, maxBarThickness: 42 }] },
   options: {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
       y: { beginAtZero: true, ticks: { precision: 0 } },
       x: { grid: { display: false } }
+    }
+  }
+});
+
+const stateLabels = {{ status_labels|tojson }};
+const stateValues = {{ status_values|tojson }};
+new Chart(document.getElementById('stateChart'), {
+  type: 'doughnut',
+  data: { labels: stateLabels, datasets: [{ data: stateValues, backgroundColor: PALETTE, borderWidth: 0 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '62%',
+    plugins: { legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'rectRounded' } } }
+  }
+});
+
+const locLabels = {{ location_labels|tojson }};
+const locValues = {{ location_values|tojson }};
+new Chart(document.getElementById('locChart'), {
+  type: 'bar',
+  data: { labels: locLabels, datasets: [{ label: 'Books', data: locValues, backgroundColor: LOC, borderRadius: 6, maxBarThickness: 42 }] },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { precision: 0 } },
+      y: { grid: { display: false } }
     }
   }
 });

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block title %}{% if book %}Edit book{% else %}Add book{% endif %} · Bookshelf{% endblock %}
 {% block content %}
 <section class="stats-strip compact">
   <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
@@ -12,31 +13,106 @@
 </section>
 <section class="panel form-panel">
   <h1>{% if book %}Edit book{% else %}Add book{% endif %}</h1>
-  <form method="post" class="book-form">
-    <label>Title *<input required type="text" name="title" value="{{ book.title if book else '' }}"></label>
-    <label>Author<input type="text" name="author" value="{{ book.author if book else '' }}"></label>
-    <label>Release Date<input type="text" name="release_date" value="{{ book.release_date if book else '' }}"></label>
+  <form method="post" class="book-form" autocomplete="off">
+    <label>Title *<input required type="text" name="title" autocomplete="off" value="{{ book.title or '' }}"></label>
+    <label>Author<input type="text" name="author" autocomplete="off" value="{{ book.author or '' }}"></label>
     <label>Reading Status
-    <select name="status_raw">
+    <select name="status_raw" autocomplete="off">
     <option value="">— select —</option>
-    <option value="Read"      {% if book and book.status_raw == 'Read' %}selected{% endif %}>Read</option>
-    <option value="Not Read"  {% if book and book.status_raw == 'Not Read' %}selected{% endif %}>Not Read</option>
-    <option value="Reading"   {% if book and book.status_raw == 'Reading' %}selected{% endif %}>Reading</option>
+    <option value="Read"      {% if book and book.status_raw == 'Read' %}selected{% endif %}>Read (finished)</option>
+    <option value="Reading"   {% if book and book.status_raw == 'Reading' %}selected{% endif %}>Reading (in progress)</option>
+    <option value="Not Read"  {% if book and book.status_raw == 'Not Read' %}selected{% endif %}>Not read</option>
+    <option value="KO"   {% if book and book.status_raw == 'KO' %}selected{% endif %}>KO</option>
     </select>
     </label>
-    <label>Worth Reading<input type="text" name="worth_reading" value="{{ book.worth_reading if book else '' }}"></label>
-    <label>Year Read<input type="text" name="year_read" value="{{ book.year_read if book else '' }}"></label>
-    <label>Location<input type="text" name="location" value="{{ book.location if book else '' }}"></label>
-    <label>ISBN<input type="text" name="isbn" value="{{ book.isbn if book else '' }}"></label>
-    <label>Current Page<input type="text" name="current_page" value="{{ book.current_page if book else '' }}"></label>
-    <label>Total Pages<input type="text" name="total_pages" value="{{ book.total_pages if book else '' }}"></label>
-    <label>Rating<input type="text" name="rating" value="{{ book.rating if book else '' }}"></label>
-    <label class="full">Description<textarea name="description" rows="4">{{ book.description if book else '' }}</textarea></label>
-    <label class="full">Notes<textarea name="notes" rows="4">{{ book.notes if book else '' }}</textarea></label>
+    <label>Worth Reading<input type="text" name="worth_reading" value="{{ book.worth_reading or '' }}"></label>
+    <label>Year Read<input type="text" name="year_read" value="{{ book.year_read or '' }}"></label>
+
+
+
+<label>Language
+  <select name="language" autocomplete="off">
+    <option value="">— select —</option>
+    <option value="IT"{% if book and book.language == 'IT' %} selected{% endif %}>IT</option>
+    <option value="EN"{% if book and book.language == 'EN' %} selected{% endif %}>EN</option>
+  </select>
+</label>
+
+
+<label>Location
+  <select name="location" autocomplete="off">
+    <option value="">— select —</option>
+    {% for loc in locations %}
+    <option value="{{ loc }}" {% if book and book.location == loc %}selected{% endif %}>{{ loc }}</option>
+    {% endfor %}
+  </select>
+</label>
+
+
+    <label>ISBN<input type="text" name="isbn" autocomplete="off" value="{{ book.isbn or '' }}"></label>
+    <label class="full">Tags<input type="text" name="tags" list="tag-options" maxlength="255" autocomplete="off" placeholder="e.g. Fabio Volo, Palombo" value="{{ book.tags|map(attribute='name')|join(', ') if book else '' }}">
+      <datalist id="tag-options">
+        {% for t in tags %}<option value="{{ t }}"></option>{% endfor %}
+      </datalist>
+    </label>
+    <label class="full">Info
+    <textarea name="description" rows="6" id="description">{{ book.description or '' }}</textarea>
+    <div class="autofill-row">
+      <button type="button" class="btn btn-secondary" id="autofill-btn">Fetch summary</button>
+      <span class="autofill-status" id="autofill-status"></span>
+    </div>
+    </label>
     <div class="form-actions">
       <a class="btn btn-ghost" href="/">Cancel</a>
       <button class="btn btn-primary" type="submit">Save</button>
     </div>
   </form>
+  {% if book %}
+  <form class="delete-form" method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Permanently delete this book?');">
+    <button class="btn btn-danger" type="submit">Delete book</button>
+  </form>
+  {% endif %}
 </section>
+<script>
+(function () {
+  const btn = document.getElementById('autofill-btn');
+  if (!btn) return;
+  const status = document.getElementById('autofill-status');
+  const desc = document.getElementById('description');
+  const titleInput = document.querySelector('input[name="title"]');
+  const authorInput = document.querySelector('input[name="author"]');
+  const langSelect = document.querySelector('select[name="language"]');
+
+  function setStatus(msg) {
+    status.textContent = msg || '';
+  }
+
+  btn.addEventListener('click', async () => {
+    const title = (titleInput.value || '').trim();
+    const author = (authorInput.value || '').trim();
+    if (!title || !author) {
+      setStatus('Enter both title and author.');
+      return;
+    }
+    const params = new URLSearchParams({ title: title, author: author, lang: (langSelect && langSelect.value) || 'auto' });
+
+    btn.disabled = true;
+    setStatus('Searching Google Books…');
+    try {
+      const res = await fetch('/api/book-lookup?' + params.toString());
+      const data = await res.json();
+      if (data.success) {
+        desc.value = data.description;
+        setStatus('Description found' + (data.source ? ' (' + data.source + ')' : '') + '.');
+      } else {
+        setStatus(data.error || 'No description found.');
+      }
+    } catch (e) {
+      setStatus('Network error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
 {% endblock %}

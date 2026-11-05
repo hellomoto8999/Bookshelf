@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Covers · Bookshelf{% endblock %}
+{% block content %}
+<section class="stats-strip compact">
+  <div class="stat-inline"><span>Total</span><strong>{{ stats.total }}</strong></div>
+  <div class="stat-inline"><span>Read</span><strong>{{ stats.read }}</strong></div>
+  <div class="stat-inline"><span>Not read</span><strong>{{ stats.not_read }}</strong></div>
+  <div class="stat-inline"><span>Reading</span><strong>{{ stats.reading }}</strong></div>
+</section>
+<section class="toolbar-row">
+  <a class="btn btn-secondary" href="/">Back to library</a>
+  <a class="btn btn-secondary" href="/statistics">Statistics</a>
+</section>
+<section class="panel form-panel">
+  <h1>Missing covers</h1>
+  <p class="subtle">
+    Look up covers (and ISBNs) on Open&nbsp;Library and, if nothing is found, on Google&nbsp;Books
+    for the books that lack one. Results are saved and shown in the list.
+    Books still without a cover stay in the list with the reason it wasn't found.
+  </p>
+  <p class="subtle" id="missing-line">Books without a cover: <strong>{{ missing }}</strong> — processed so far: <strong id="batch-done">0</strong>.</p>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="button" id="start-btn" {% if batch['running'] %}disabled{% endif %}>Start cover search</button>
+    <a class="btn btn-ghost" href="/">Back</a>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap" {% if not batch['running'] %}hidden{% endif %}>
+    <progress id="progress" max="100" value="0"></progress>
+    <p class="subtle" id="progress-text"></p>
+    <p class="subtle flash" id="batch-error"{% if not batch['error'] %} hidden{% endif %}>{{ batch['error'] or '' }}</p>
+  </div>
+</section>
+<script>
+(function () {
+  const startBtn = document.getElementById('start-btn');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progress = document.getElementById('progress');
+  const progressText = document.getElementById('progress-text');
+  const batchDone = document.getElementById('batch-done');
+  const batchError = document.getElementById('batch-error');
+
+  function render(s) {
+    if (s.running) {
+      progressWrap.hidden = false;
+      batchError.hidden = !s.error;
+      if (s.error) batchError.textContent = s.error;
+      if (s.total > 0) {
+        progress.value = Math.round((s.done / s.total) * 100);
+        progressText.textContent = s.done + ' / ' + s.total +
+          ' (ok: ' + s.ok + ', not found: ' + s.fail + ')';
+      } else {
+        progress.value = 0;
+        progressText.textContent = 'Searching for books without a cover…';
+      }
+      startBtn.disabled = true;
+    } else {
+      startBtn.disabled = false;
+      if (s.done > 0) {
+        progressWrap.hidden = false;
+        progress.value = 100;
+        progressText.textContent = 'Completed: ' + s.done + ' processed (ok: ' + s.ok + ', not found: ' + s.fail + ')' +
+          (s.error ? ' — Error: ' + s.error : '');
+      }
+    }
+    batchDone.textContent = String(s.done);
+  }
+
+  function poll() {
+    fetch('/coverfill/status')
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () {});
+  }
+
+  startBtn.addEventListener('click', function () {
+    fetch('/coverfill/start', { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) { render({ running: true, total: 0, done: 0, ok: 0, fail: 0, error: null }); poll(); }
+        else if (d.error) { batchError.hidden = false; batchError.textContent = d.error; }
+      });
+  });
+
+  setInterval(poll, 1500);
+  poll();
+})();
+</script>
+{% endblock %}
